@@ -3,369 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CoaTok - Scroll & Watch</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Guru AI Mengambang</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
-            --bg: #000000;
+            --bg-chat: #0f0f13;
+            --card: #1a1a24;
             --text: #ffffff;
-            --gray: #a1a1a1;
-            --primary: #ff2a55; 
-            --ai-color: #00f3ff; 
+            --primary: #4285F4; /* Biru Google */
+            --ai-bg: #252533;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+        body { background: transparent; color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* === FEED VIDEO (SCROLL SNAP) === */
-        .video-feed {
-            height: 100vh; width: 100%; overflow-y: scroll;
-            scroll-snap-type: y mandatory; scrollbar-width: none;
-        }
-        .video-feed::-webkit-scrollbar { display: none; }
-
-        .video-post {
-            height: 100vh; width: 100%; scroll-snap-align: start;
-            position: relative; display: flex; align-items: center; justify-content: center;
-        }
-
-        .video-player { width: 100%; height: 100%; object-fit: cover; }
-        
-        .video-overlay {
-            position: absolute; inset: 0;
-            background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.8) 100%);
-            pointer-events: none;
-        }
-
-        /* === KONTEN OVERLAY === */
-        .bottom-content {
-            position: absolute; bottom: 60px; left: 0; width: 100%;
-            display: flex; justify-content: space-between; align-items: flex-end;
-            padding: 0 15px; z-index: 10;
-        }
-
-        .info-left { flex: 1; padding-right: 20px; pointer-events: auto; }
-        .username { font-weight: 700; font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .username i { color: var(--ai-color); font-size: 14px; }
-        .caption { font-size: 14px; margin-bottom: 10px; line-height: 1.4; }
-        .music { font-size: 13px; display: flex; align-items: center; gap: 8px; }
-        .music i { animation: spin 3s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        .actions-right { display: flex; flex-direction: column; gap: 20px; pointer-events: auto; }
-        .action-btn {
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
-            background: none; border: none; color: white; cursor: pointer;
-        }
-        .action-btn i { font-size: 32px; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .action-btn span { font-size: 12px; font-weight: 600; }
-        .action-btn.liked i { color: var(--primary); }
-
-        /* === NAV BAWAH === */
-        .bottom-nav {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 50px;
-            background: rgba(0,0,0,0.9); border-top: 1px solid #222;
-            display: flex; justify-content: space-around; align-items: center; z-index: 100;
-        }
-        .nav-item { color: var(--gray); text-decoration: none; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .nav-item.active { color: white; }
-        .nav-item i { font-size: 18px; }
-
-        /* === FLOATING AI BUTTON & CHAT === */
-        .ai-btn {
-            position: absolute; right: 15px; bottom: 80px; z-index: 100;
-            width: 55px; height: 55px; border-radius: 50%;
-            background: var(--ai-color); color: black;
+        /* === WIDGET FLOATING (MENGAMBANG) === */
+        #floating-ai {
+            position: fixed; 
+            bottom: 20px; right: 20px; 
+            width: 60px; height: 60px;
+            background: var(--primary);
+            border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
-            font-size: 24px; cursor: pointer;
-            box-shadow: 0 0 15px var(--ai-color);
-            animation: pulse 2s infinite;
+            font-size: 30px; color: white;
+            box-shadow: 0 4px 15px rgba(66, 133, 244, 0.5);
+            cursor: pointer; z-index: 9999;
+            transition: all 0.3s ease;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-        /* Chat UI */
-        .ai-chat-container {
-            position: fixed; bottom: -100%; left: 0; width: 100%; height: 60vh;
-            background: #111; border-top-left-radius: 20px; border-top-right-radius: 20px;
-            border-top: 2px solid var(--ai-color);
-            z-index: 999; transition: bottom 0.3s ease;
-            display: flex; flex-direction: column;
-        }
-        .ai-chat-container.open { bottom: 0; }
-
-        .chat-header {
-            padding: 15px; display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #222;
-        }
-        .chat-header h3 { font-size: 16px; color: var(--ai-color); display: flex; align-items: center; gap: 8px; }
-        .close-chat { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-
-        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
-        .msg.ai { background: #222; color: white; align-self: flex-start; border-bottom-left-radius: 4px; }
-        .msg.user { background: var(--ai-color); color: black; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 500; }
-
-        .chat-input-area {
-            padding: 10px 15px; display: flex; gap: 10px; background: #000;
-            border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
-            padding-bottom: max(15px, env(safe-area-inset-bottom));
-        }
-        .chat-input-area input {
-            flex: 1; background: #222; border: none; border-radius: 20px;
-            padding: 12px 15px; color: white; font-size: 14px; outline: none;
-        }
-        .send-btn {
-            width: 45px; height: 45px; border-radius: 50%; background: var(--ai-color);
-            border: none; color: black; font-size: 18px; cursor: pointer;
+        
+        /* Efek saat disembunyiin (Tap 3x) */
+        #floating-ai.hidden-mode {
+            width: 20px; height: 20px; font-size: 0px;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+            border: 1px solid rgba(255,255,255,0.3);
         }
 
-        /* Animasi Loading Awal */
-        #loader { position: fixed; inset: 0; background: black; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; gap: 15px; transition: opacity 0.5s; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        /* === CHAT CONTAINER === */
+        #chat-container {
+            position: absolute; inset: 10px;
+            background: var(--bg-chat);
+            border-radius: 20px;
+            display: none; 
+            flex-direction: column;
+            border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            z-index: 10000;
+            overflow: hidden;
+        }
+        
+        #chat-container.show { display: flex; animation: popUp 0.3s ease; }
+        @keyframes popUp { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+        /* Header */
+        .header {
+            background: var(--card); padding: 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #333;
+        }
+        .header-title { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .header-title i { color: var(--primary); font-size: 20px; }
+        .close-btn { background: none; border: none; color: #aaa; font-size: 20px; cursor: pointer; }
+
+        /* Area Chat */
+        .chat-area {
+            flex: 1; padding: 15px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .message { display: flex; gap: 10px; max-width: 85%; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message.ai { align-self: flex-start; }
+
+        .avatar {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+        .message.user .avatar { background: #333; }
+        .message.ai .avatar { background: var(--primary); color: white; }
+
+        .bubble {
+            padding: 10px 14px; border-radius: 14px;
+            font-size: 13px; line-height: 1.5; word-wrap: break-word;
+        }
+        .message.user .bubble { background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+        .message.ai .bubble { background: var(--ai-bg); border-bottom-left-radius: 4px; }
+
+        /* Input Area */
+        .input-area {
+            padding: 10px; background: var(--card);
+            display: flex; gap: 8px; border-top: 1px solid #333;
+        }
+        .input-area input {
+            flex: 1; background: var(--bg-chat); border: 1px solid #333;
+            padding: 10px 14px; border-radius: 20px; color: white;
+            outline: none; font-size: 13px;
+        }
+        .input-area input:focus { border-color: var(--primary); }
+        .input-area button {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--primary); color: white;
+            border: none; cursor: pointer; font-size: 16px;
+        }
+        .input-area button:disabled { background: #555; }
+
+        /* Animasi Loading */
+        .typing { display: inline-flex; gap: 4px; }
+        .typing span { width: 5px; height: 5px; background: #888; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing span:nth-child(1) { animation-delay: -0.32s; }
+        .typing span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <!-- LOADING SCREEN -->
-    <div id="loader">
-        <div class="spinner"></div>
-        <div style="font-weight: 600; font-size: 14px;">Memuat Video...</div>
+    <!-- LOGO ROBOT MENGAMBANG -->
+    <div id="floating-ai" onclick="toggleChat()">
+        <i class="fa-solid fa-robot"></i>
     </div>
 
-    <!-- AREA VIDEO -->
-    <div class="video-feed" id="feed"></div>
-
-    <!-- NAVIGASI BAWAH -->
-    <div class="bottom-nav">
-        <div class="nav-item active"><i class="fa-solid fa-house"></i><span>Home</span></div>
-        <div class="nav-item"><i class="fa-solid fa-user-group"></i><span>Friends</span></div>
-        <div class="nav-item" style="opacity:0"><i class="fa-solid fa-plus"></i><span>+</span></div>
-        <div class="nav-item"><i class="fa-solid fa-comment-dots"></i><span>Inbox</span></div>
-        <div class="nav-item"><i class="fa-solid fa-user"></i><span>Profile</span></div>
-    </div>
-
-    <!-- TOMBOL AI FLOATING -->
-    <button class="ai-btn" onclick="toggleChat()"><i class="fa-solid fa-robot"></i></button>
-
-    <!-- CHAT AI -->
-    <div class="ai-chat-container" id="aiChat">
-        <div class="chat-header">
-            <h3><i class="fa-solid fa-robot"></i> Coarena AI</h3>
-            <button class="close-chat" onclick="toggleChat()"><i class="fa-solid fa-xmark"></i></button>
+    <!-- KOTAK CHAT AI -->
+    <div id="chat-container">
+        <div class="header">
+            <div class="header-title">
+                <i class="fa-solid fa-robot"></i> Guru AI Pintar
+            </div>
+            <button class="close-btn" onclick="toggleChat()"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="msg ai">Halo! Aku AI dari Coarena. Ada yang bisa aku bantu?</div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="message ai">
+                <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="bubble">Halo murid! Saya Guru AI Anda. Mau belajar apa hari ini? (Matematika, IPA, Bahasa, atau Kuliah?)</div>
+            </div>
         </div>
-        <div class="chat-input-area">
-            <input type="text" id="aiInput" placeholder="Tanya AI..." onkeypress="handleKeyPress(event)">
-            <button class="send-btn" onclick="sendToAI()"><i class="fa-solid fa-paper-plane"></i></button>
+
+        <div class="input-area">
+            <input type="text" id="chatInput" placeholder="Tanya PR atau materi..." onkeypress="handleKeyPress(event)">
+            <button id="sendBtn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
         </div>
     </div>
 
     <script>
         // ==========================================
-        // 1. DATA VIDEO (BISA LO GANTI SENDIRI)
+        // 🚨 KONFIGURASI: UBAH URL PTERODACTYL LO DI SINI
         // ==========================================
-        // Gue pakai server Google (Unlimited & Super Cepat). 
-        // Lo bisa ganti link videoUrl dan thumbnail pakai punya lo sendiri.
-        const VIDEO_DATA = [
-            {
-                url: "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                author: "bunny_official",
-                caption: "Petualangan kelinci lucu di hutan! 🐰🌳 #animasi #fun",
-                likes: 12450
-            },
-            {
-                url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-                author: "dream_works",
-                caption: "Mimpi aneh dua karakter di dunia misterius. 🤖✨ #3d #art",
-                likes: 8920
-            },
-            {
-                url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-                author: "action_scene",
-                caption: "Tes ketahanan layar TV pakai api! 🔥📺 #technology",
-                likes: 45100
-            },
-            {
-                url: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-                author: "travel_vlog",
-                caption: "Escape ke alam bebas. Butuh liburan? 🏕️🏔️",
-                likes: 2300
-            },
-            {
-                url: "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-                author: "fantasy_world",
-                caption: "Animasi fantasi kualitas Hollywood. Naga & Pedang! 🐉⚔️",
-                likes: 99000
+        // Jangan lupa ganti pakai URL panel lo
+        const PTERO_API = 'http://public.zhaher.my.id:2681/api/gemini';
+        
+        // Prompt Rahasia Guru Pintar (SD - Kuliah)
+        const SYSTEM_INSTRUCTION = "Kamu adalah Guru AI yang sangat pintar, sabar, dan ramah. Tugasmu adalah mengajar murid dari tingkat SD hingga Kuliah. Gunakan bahasa yang mudah dipahami, berikan contoh nyata, dan bimbing mereka langkah demi langkah jika ada soal matematika atau sains. Jika ditanya di luar pelajaran, jawab dengan sopan sebagai seorang pendidik.";
+
+        let currentSessionId = null;
+        let tapCount = 0;
+        let tapTimer = null;
+
+        const chatArea = document.getElementById('chatArea');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const floatingBtn = document.getElementById('floating-ai');
+        const chatContainer = document.getElementById('chat-container');
+
+        // ==========================================
+        // GESTUR RAHASIA: TAP 3X DI LAYAR
+        // ==========================================
+        document.body.addEventListener('click', (e) => {
+            // Abaikan kalau yang diklik adalah tombol chat/input
+            if (e.target.closest('#chat-container') || e.target.closest('#floating-ai')) return;
+
+            tapCount++;
+            if (tapCount === 1) {
+                tapTimer = setTimeout(() => { tapCount = 0; }, 600);
             }
-        ];
 
-        // ==========================================
-        // 2. KONFIGURASI API AI COARENA
-        // ==========================================
-        const COARENA_API_KEY = 'coa_3c4bc46469bd77b8f9c915910b036a60';
-        const COARENA_ENDPOINT = 'https://coarena.ai/api'; // Ganti dengan URL endpoint API-nya
-
-        // ==========================================
-        // 3. RENDER VIDEO & SCROLL TIKTOK
-        // ==========================================
-        function renderVideos() {
-            const feed = document.getElementById('feed');
-            
-            VIDEO_DATA.forEach((vid, index) => {
-                const post = document.createElement('div');
-                post.className = 'video-post';
-                
-                // Atribut 'loop' bikin video ngulang terus
-                // Atribut 'muted' wajib biar autoplay jalan di browser HP
-                post.innerHTML = `
-                    <video class="video-player" src="${vid.url}" loop playsinline autoplay muted onclick="togglePlay(this)"></video>
-                    <div class="video-overlay"></div>
-                    
-                    <div class="bottom-content">
-                        <div class="info-left">
-                            <div class="username">@${vid.author} <i class="fa-solid fa-circle-check"></i></div>
-                            <div class="caption">${vid.caption}</div>
-                            <div class="music"><i class="fa-solid fa-compact-disc"></i> Original Sound - ${vid.author}</div>
-                        </div>
-                        
-                        <div class="actions-right">
-                            <button class="action-btn" onclick="toggleLike(this, ${vid.likes})">
-                                <i class="fa-solid fa-heart"></i>
-                                <span class="like-count">${vid.likes}</span>
-                            </button>
-                            <button class="action-btn">
-                                <i class="fa-solid fa-comment-dots"></i>
-                                <span>${Math.floor(Math.random() * 500)}</span>
-                            </button>
-                            <button class="action-btn">
-                                <i class="fa-solid fa-share"></i>
-                                <span>Share</span>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                feed.appendChild(post);
-            });
-
-            // Hilangin Loading setelah video siap
-            const loader = document.getElementById('loader');
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
-
-            setupAutoplay();
-        }
-
-        // === LOGIKA PLAY / PAUSE SAAT DI-KLIK ===
-        function togglePlay(video) {
-            if (video.paused) {
-                video.play();
-            } else {
-                video.pause();
+            if (tapCount === 3) {
+                clearTimeout(tapTimer);
+                tapCount = 0;
+                floatingBtn.classList.toggle('hidden-mode');
+                if (chatContainer.classList.contains('show')) {
+                    chatContainer.classList.remove('show');
+                }
             }
-        }
-
-        // === LOGIKA AUTO PLAY SAAT DI-SCROLL (SWIPE) ===
-        function setupAutoplay() {
-            const videos = document.querySelectorAll('.video-player');
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.play();
-                        // entry.target.muted = false; // Buka komen ini kalau mau ada suara (tapi kadang diblokir browser HP)
-                    } else {
-                        entry.target.pause();
-                        entry.target.currentTime = 0; // Reset video dari awal
-                    }
-                });
-            }, { threshold: 0.6 }); // Video play kalau keliatan 60%
-
-            videos.forEach(video => observer.observe(video));
-        }
-
-        // === LOGIKA LIKE ===
-        function toggleLike(btn, baseLikes) {
-            const icon = btn.querySelector('i');
-            const countSpan = btn.querySelector('.like-count');
-            let count = parseInt(countSpan.innerText);
-            
-            if (btn.classList.contains('liked')) {
-                btn.classList.remove('liked');
-                icon.style.color = 'white';
-                countSpan.innerText = count - 1;
-            } else {
-                btn.classList.add('liked');
-                icon.style.color = 'var(--primary)';
-                countSpan.innerText = count + 1;
-            }
-        }
+        });
 
         // ==========================================
-        // 4. LOGIKA AI CHAT (COARENA)
+        // LOGIKA BUKA/TUTUP CHAT
         // ==========================================
         function toggleChat() {
-            const chat = document.getElementById('aiChat');
-            chat.classList.toggle('open');
+            if (floatingBtn.classList.contains('hidden-mode')) return;
+            chatContainer.classList.toggle('show');
+            if (chatContainer.classList.contains('show')) {
+                chatInput.focus();
+            }
         }
 
         function handleKeyPress(e) {
-            if (e.key === 'Enter') sendToAI();
+            if (e.key === 'Enter') sendMessage();
         }
 
-        async function sendToAI() {
-            const input = document.getElementById('aiInput');
-            const text = input.value.trim();
+        // ==========================================
+        // LOGIKA KIRIM PESAN (BYPASS CORS VIA PROXY)
+        // ==========================================
+        async function sendMessage() {
+            const text = chatInput.value.trim();
             if (!text) return;
 
-            // Tampilkan chat user
-            addMessage(text, 'user');
-            input.value = '';
-
-            // Tampilkan loading
-            const loadingMsg = addMessage('Sedang berpikir...', 'ai');
+            appendMessage(text, 'user');
+            chatInput.value = '';
+            
+            const loadingBubble = appendLoading();
+            sendBtn.disabled = true;
 
             try {
-                // REQUEST KE API COARENA (Placeholder)
-                const response = await fetch(COARENA_ENDPOINT, {
+                // Kita nembak lewat Proxy (Public CORS Proxy) biar Vercel (HTTPS) bisa akses Ptero (HTTP)
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(PTERO_API);
+
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${COARENA_API_KEY}`
-                    },
-                    body: JSON.stringify({
-                        messages: [{ role: 'user', content: text }]
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: text,
+                        instruction: SYSTEM_INSTRUCTION,
+                        sessionId: currentSessionId 
                     })
                 });
 
                 const data = await response.json();
-                loadingMsg.remove();
+                loadingBubble.remove();
 
-                // Tampilkan jawaban AI
-                const aiReply = data.reply || data.message || "Maaf, respon tidak dikenali.";
-                addMessage(aiReply, 'ai');
+                if (data.status === 'success') {
+                    appendMessage(data.text, 'ai');
+                    if (data.sessionId) currentSessionId = data.sessionId;
+                } else {
+                    appendMessage("❌ Error: " + (data.error || "Gagal konek ke server"), 'ai');
+                }
 
             } catch (error) {
-                loadingMsg.remove();
-                addMessage("Error: Gagal terhubung ke server AI.", 'ai');
+                loadingBubble.remove();
+                appendMessage("❌ Koneksi terputus. Pastikan server Pterodactyl nyala dan URL benar.", 'ai');
+            } finally {
+                sendBtn.disabled = false;
             }
         }
 
-        function addMessage(text, sender) {
-            const box = document.getElementById('chatMessages');
-            const msg = document.createElement('div');
-            msg.className = `msg ${sender}`;
-            msg.innerText = text;
-            box.appendChild(msg);
-            box.scrollTop = box.scrollHeight;
-            return msg;
+        // ==========================================
+        // FUNGSI UI CHAT
+        // ==========================================
+        function appendMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            const icon = sender === 'user' ? 'fa-user' : 'fa-robot';
+            
+            let formattedText = text.replace(/\n/g, '<br>');
+            formattedText = formattedText.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+            msgDiv.innerHTML = `
+                <div class="avatar"><i class="fa-solid ${icon}"></i></div>
+                <div class="bubble">${formattedText}</div>
+            `;
+            
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
         }
 
-        // Jalanin Render pas web dibuka
-        window.onload = renderVideos;
+        function appendLoading() {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ai`;
+            msgDiv.innerHTML = `
+                <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="bubble">
+                    <div class="typing"><span></span><span></span><span></span></div>
+                </div>
+            `;
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return msgDiv;
+        }
     </script>
 </body>
 </html>
